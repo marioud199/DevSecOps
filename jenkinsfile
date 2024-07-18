@@ -1,0 +1,127 @@
+pipeline {
+    agent any
+    tools {
+        maven 'maven3'
+        jdk 'jdk17'
+    }
+    environment {
+        SCANNER_HOME = tool 'sonar'
+    }
+
+    stages {
+        stage('Git checkout') {
+            steps {
+               git branch: 'main', credentialsId: 'git-cred', url: 'https://github.com/marioud199/DevSecOps.git'
+            }
+        }
+        stage('Compile') {
+            steps {
+                sh "mvn compile"
+            }
+        }
+        stage('Test') {
+            steps {
+                sh "mvn test"
+            }
+        }
+        stage('File system scan') {
+            steps {
+                sh "trivy fs --format table -o trivy-fs-scan.html ."
+            }
+        }
+        stage('SonarQube scan') {
+            steps {
+              withSonarQubeEnv('sonar') {
+                sh """
+                ${SCANNER_HOME}/bin/sonar-scanner \
+                 -Dsonar.projectKey=BoardGame \
+                -Dsonar.projectName=BoardGame \
+                -Dsonar.java.binaries=. 
+                """
+              }
+            }
+        }
+        stage('Quality Gate') {
+            steps {
+               script {
+                  waitForQualityGate abortPipeline: false, credentialsId: 'sonar-id'
+               }
+            }
+        }
+        stage('Build') {
+            steps {
+                sh "mvn package"
+            }
+        }
+        stage('Publish to Nexus') {
+            steps {
+                withMaven(globalMavenSettingsConfig: 'global-setting', jdk: 'jdk17', maven: 'maven3', mavenSettingsConfig: '', traceability: true) {
+                    sh "mvn deploy"
+                }
+            }
+        }
+        stage('Docker build & Tag Image') {
+            steps {
+                 sh "docker build -t marioud199/DevSecOps-boardgame:lts ."
+            }
+        }
+        stage('Docker Image Scan') {
+            steps {
+               sh "trivy image --format table -o trivy-image-scan.html marioud199/DevSecOps-boardgame:lts"
+            }
+        }
+        stage('Docker Push Image') {
+            steps {
+                script {
+                     withDockerRegistry(credentialsId: 'docker-id', toolName: 'docker') {
+                         sh "docker push marioud199/DevSecOps-boardgame:lts"
+                     }
+                }
+            }
+        }
+        stage('Update Kubernetes Deployment') {
+            steps {
+                script {
+                    sh "sed -i 's|DevSecOps-boardgame:lts|marioud199/DevSecOps-boardgame:lts|g' k8s/deployment-service.yaml"
+                }
+            }
+        }
+        stage('Deploy to k8s') {
+            steps {
+                script {
+                    echo 'Deployment started'
+                    withKubeConfig([credentialsId: 'k8s-config', variable: 'KUBECONFIG']) {
+                        sh 'kubectl apply -f k8s/deployment-service.yaml'
+                        echo 'Deployment Finished'
+                    }
+                }
+            }
+        }
+        stage('Check k8s Deployment') {
+            steps {
+                script {
+                    echo 'Checking deployment...'
+                    withKubeConfig([credentialsId: 'k8s-config', variable: 'KUBECONFIG']) {
+                        sh 'kubectl get pods'
+                        sh 'kubectl get svc'
+                    }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            emailext attachLog: true, 
+            subject: "'${currentBuild.result}'",
+            body: "project url: ${env.BUILD_URL}<br/>" +
+                  "project name: ${env.JOB_NAME}<br/>" +
+                  "build number: ${env.BUILD_NUMBER}<br/>" +
+                  "build status: ${currentBuild.result}<br/>",
+            recipientProviders: [[$class: 'DevelopersRecipientProvider']],
+            mimeType: 'text/html', 
+            to: 'mohamedmarioud2020@gmail.com',
+            from: 'mar@test.com',
+            attachmentsPattern: 'trivy-image-scan.html'
+        }
+    }
+}
