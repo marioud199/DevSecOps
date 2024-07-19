@@ -1,8 +1,8 @@
 pipeline {
     agent any
-    tools {
-        maven 'maven3'
-        jdk 'jdk17'
+   tools {
+        jdk "jdk17"
+        maven "maven3"
     }
     environment {
         SCANNER_HOME = tool 'sonar-scanner'
@@ -55,26 +55,26 @@ pipeline {
         }
         stage('Publish to Nexus') {
             steps {
-                withMaven(globalMavenSettingsConfig: 'global-settings', jdk: 'jdk17', maven: 'maven3', mavenSettingsConfig: '', traceability: true) {
-                    sh "mvn deploy"
-                }
+               withMaven(globalMavenSettingsConfig: 'global-settings', jdk: 'jdk17', maven: 'maven3', mavenSettingsConfig: '', traceability: true) {
+                   sh "mvn deploy"
+            }
             }
         }
         stage('Docker build & Tag Image') {
             steps {
-                 sh "docker build -t marioud199/DevSecOps-boardgame:lts ."
+                 sh "docker build -t marioud199/devsecops-boardgame:lts ."
             }
         }
         stage('Docker Image Scan') {
             steps {
-               sh "trivy image --format table -o trivy-image-scan.html marioud199/DevSecOps-boardgame:lts"
+               sh "trivy image --format table -o trivy-image-scan.html marioud199/devsecops-boardgame:lts"
             }
         }
         stage('Docker Push Image') {
             steps {
                 script {
                      withDockerRegistry(credentialsId: 'docker-id', toolName: 'docker') {
-                         sh "docker push marioud199/DevSecOps-boardgame:lts"
+                         sh "docker push marioud199/devsecops-boardgame:lts"
                      }
                 }
             }
@@ -82,7 +82,7 @@ pipeline {
         stage('Update Kubernetes Deployment') {
             steps {
                 script {
-                    sh "sed -i 's|DevSecOps-boardgame:lts|marioud199/DevSecOps-boardgame:lts|g' k8s/deployment-service.yaml"
+                    sh "sed -i 's|devsecops-boardgame:lts|marioud199/devsecops-boardgame:lts|g' k8s/deployment-service.yaml"
                 }
             }
         }
