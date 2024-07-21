@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: boardgame
-        image: marioud199/DevSecOps-boardgame:lts
+        image: marioud/DevSecOps-boardgame:lts
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
