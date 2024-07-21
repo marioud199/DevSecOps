@@ -1,17 +1,20 @@
 pipeline {
     agent any
-   tools {
-        jdk "jdk17"
-        maven "maven3"
+    tools {
+        maven 'maven3'
+        jdk 'jdk17'
     }
     environment {
         SCANNER_HOME = tool 'sonar-scanner'
+        NEXUS_SERVER="52.91.49.72:8083"
+        DOCKER_REGISTRY="52.91.49.72:8081/repository/docker"
+        IMAGE_TAG="${BUILD_NUMBER}"
     }
 
     stages {
         stage('Git checkout') {
             steps {
-               git branch: 'main', credentialsId: 'git-cred', url: 'https://github.com/marioud199/DevSecOps.git'
+                git branch: 'main', credentialsId: 'git-cred', url: 'https://github.com/marioud199/DevSecOps.git'
             }
         }
         stage('Compile') {
@@ -31,21 +34,21 @@ pipeline {
         }
         stage('SonarQube scan') {
             steps {
-              withSonarQubeEnv('sonar') {
-                sh """
-                ${SCANNER_HOME}/bin/sonar-scanner \
-                 -Dsonar.projectKey=BoardGame \
-                -Dsonar.projectName=BoardGame \
-                -Dsonar.java.binaries=. 
-                """
-              }
+                withSonarQubeEnv('sonar') {
+                    sh """
+                    ${SCANNER_HOME}/bin/sonar-scanner \
+                    -Dsonar.projectKey=BoardGame \
+                    -Dsonar.projectName=BoardGame \
+                    -Dsonar.java.binaries=. 
+                    """
+                }
             }
         }
         stage('Quality Gate') {
             steps {
-               script {
-                  waitForQualityGate abortPipeline: false, credentialsId: 'sonar-id'
-               }
+                script {
+                    waitForQualityGate abortPipeline: false, credentialsId: 'sonar-id'
+                }
             }
         }
         stage('Build') {
@@ -55,34 +58,36 @@ pipeline {
         }
         stage('Publish to Nexus') {
             steps {
-               withMaven(globalMavenSettingsConfig: 'global-settings', jdk: 'jdk17', maven: 'maven3', mavenSettingsConfig: '', traceability: true) {
-                   sh "mvn deploy -X "
-            }
+                withMaven(globalMavenSettingsConfig: 'global-settings', jdk: 'jdk17', maven: 'maven3', mavenSettingsConfig: '', traceability: true) {
+                    sh "mvn deploy"
+                }
             }
         }
         stage('Docker build & Tag Image') {
             steps {
-                 sh "docker build -t marioud/devsecops-boardgame:lts ."
+                script {
+                    docker.build("${NEXUS_SERVER}/marioud/devsecops-boardgame:${IMAGE_TAG}")
+                }
             }
         }
         stage('Docker Image Scan') {
             steps {
-               sh "trivy image --format table -o trivy-image-scan.html marioud/devsecops-boardgame:lts"
+                sh "trivy image --format table -o trivy-image-scan.html ${NEXUS_SERVER}/marioud/devsecops-boardgame:${IMAGE_TAG}"
             }
         }
         stage('Docker Push Image') {
             steps {
                 script {
-                     withDockerRegistry(credentialsId: 'docker-id', toolName: 'docker') {
-                         sh "docker push marioud/devsecops-boardgame:lts"
-                     }
+                    withDockerRegistry([url: "http://${NEXUS_SERVER}" , credentialsId: "nexus"]) {
+                        docker.image("${NEXUS_SERVER}/marioud/devsecops-boardgame:${IMAGE_TAG}").push()
+                    }
                 }
             }
         }
         stage('Update Kubernetes Deployment') {
             steps {
                 script {
-                    sh "sed -i 's|devsecops-boardgame:lts|marioud/devsecops-boardgame:lts|g' deployment-service.yaml"
+                    sh "sed -i 's|image:.*|image: ${NEXUS_SERVER}/marioud/devsecops-boardgame:${IMAGE_TAG}|g' deployment-service.yaml"
                 }
             }
         }
@@ -90,7 +95,7 @@ pipeline {
             steps {
                 script {
                     echo 'Deployment started'
-                    withKubeConfig([credentialsId: 'k8s-config', variable: 'KUBECONFIG']) {
+                    withCredentials([file(credentialsId: 'k8s-config', variable: 'KUBECONFIG')]) {
                         sh 'kubectl apply -f deployment-service.yaml'
                         echo 'Deployment Finished'
                     }
