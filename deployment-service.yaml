@@ -3,19 +3,19 @@ kind: Deployment
 metadata:
   name: boardgame-deployment
   labels:
-    app: game
+    app: devsecops-boardgame
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: game
+      app: devsecops-boardgame
   template:
     metadata:
       labels:
-        app: game
+        app: devsecops-boardgame
     spec:
       containers:
-      - name: boardgame
+      - name: devsecops-boardgame
         image: marioud/DevSecOps-boardgame:lts
         imagePullPolicy: Always
         ports:
@@ -25,11 +25,9 @@ apiVersion: v1
 kind: Service
 metadata:
   name: boardgame-service
-  labels:
-    app: game
 spec:
   selector:
-    app: game
+    app: devsecops-boardgame
   ports:
   - protocol: TCP
     port: 8080
