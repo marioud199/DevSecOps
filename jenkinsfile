@@ -6,8 +6,8 @@ pipeline {
     }
     environment {
         SCANNER_HOME = tool 'sonar-scanner'
-        NEXUS_SERVER="52.91.49.72:8083"
-        DOCKER_REGISTRY="52.91.49.72:8081/repository/docker"
+        NEXUS_SERVER="18.212.240.159:8081"
+        DOCKER_REGISTRY="18.212.240.159:8081/repository/docker-repo"
         IMAGE_TAG="${BUILD_NUMBER}"
     }
 
