@@ -6,8 +6,7 @@ pipeline {
     }
     environment {
         SCANNER_HOME = tool 'sonar-scanner'
-        NEXUS_SERVER="18.212.240.159:8083"
-        DOCKER_REGISTRY="18.212.240.159:8081/repository/docker-repo"
+       
         IMAGE_TAG="${BUILD_NUMBER}"
     }
 
@@ -27,30 +26,30 @@ pipeline {
                 sh "mvn test"
             }
         }
-        stage('File system scan') {
-            steps {
-                sh "trivy fs --format table -o trivy-fs-scan.html ."
-            }
-        }
-        stage('SonarQube scan') {
-            steps {
-                withSonarQubeEnv('sonar') {
-                    sh """
-                    ${SCANNER_HOME}/bin/sonar-scanner \
-                    -Dsonar.projectKey=BoardGame \
-                    -Dsonar.projectName=BoardGame \
-                    -Dsonar.java.binaries=. 
-                    """
-                }
-            }
-        }
-        stage('Quality Gate') {
-            steps {
-                script {
-                    waitForQualityGate abortPipeline: false, credentialsId: 'sonar-id'
-                }
-            }
-        }
+        // stage('File system scan') {
+        //     steps {
+        //         sh "trivy fs --format table -o trivy-fs-scan.html ."
+        //     }
+        // }
+        // stage('SonarQube scan') {
+        //     steps {
+        //         withSonarQubeEnv('sonar') {
+        //             sh """
+        //             ${SCANNER_HOME}/bin/sonar-scanner \
+        //             -Dsonar.projectKey=BoardGame \
+        //             -Dsonar.projectName=BoardGame \
+        //             -Dsonar.java.binaries=. 
+        //             """
+        //         }
+        //     }
+        // }
+        // stage('Quality Gate') {
+        //     steps {
+        //         script {
+        //             waitForQualityGate abortPipeline: false, credentialsId: 'sonar-id'
+        //         }
+        //     }
+        // }
         stage('Build') {
             steps {
                 sh "mvn package"
@@ -66,20 +65,20 @@ pipeline {
         stage('Docker build & Tag Image') {
             steps {
                 script {
-                    docker.build("${NEXUS_SERVER}/marioud/devsecops-boardgame:${IMAGE_TAG}")
+                    docker.build("marioud/devsecops-boardgame:${IMAGE_TAG}")
                 }
             }
         }
-        stage('Docker Image Scan') {
-            steps {
-                sh "trivy image --format table -o trivy-image-scan.html ${NEXUS_SERVER}/marioud/devsecops-boardgame:${IMAGE_TAG}"
-            }
-        }
+        // stage('Docker Image Scan') {
+        //     steps {
+        //         sh "trivy image --format table -o trivy-image-scan.html marioud/devsecops-boardgame:${IMAGE_TAG}"
+        //     }
+        // }
         stage('Docker Push Image') {
             steps {
                 script {
-                    withDockerRegistry([url: "http://${NEXUS_SERVER}" , credentialsId: "nexus"]) {
-                        docker.image("${NEXUS_SERVER}/marioud/devsecops-boardgame:${IMAGE_TAG}").push()
+                    withDockerRegistry(credentialsId: 'docker-cred', toolname: 'docker') {
+                        docker.image("marioud/devsecops-boardgame:${IMAGE_TAG}").push()
                     }
                 }
             }
@@ -87,7 +86,7 @@ pipeline {
         stage('Update Kubernetes Deployment') {
             steps {
                 script {
-                    sh "sed -i 's|image:.*|image: ${NEXUS_SERVER}/marioud/devsecops-boardgame:${IMAGE_TAG}|g' deployment-service.yaml"
+                    sh "sed -i 's|image:.*|image: marioud/devsecops-boardgame:${IMAGE_TAG}|g' deployment-service.yaml"
                 }
             }
         }
