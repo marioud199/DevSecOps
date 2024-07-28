@@ -1,53 +1,115 @@
-# BoardgameListingWebApp
+![Alt text]()
+DevSecOps Project CI/CD Pipeline
 
-## Description
+This project demonstrates a CI/CD pipeline for a Java Maven application called BoardGame. The pipeline is implemented using Jenkins and incorporates several tools and stages to ensure code quality, security, and automated deployment.
+Project Map
+Pipeline Overview
 
-**Board Game Database Full-Stack Web Application.**
-This web application displays lists of board games and their reviews. While anyone can view the board game lists and reviews, they are required to log in to add/ edit the board games and their reviews. The 'users' have the authority to add board games to the list and add reviews, and the 'managers' have the authority to edit/ delete the reviews on top of the authorities of users.  
+The Jenkins pipeline performs the following steps:
 
-## Technologies
+    Compile Code
+        Compiles the Java code using Maven.
 
-- Java
-- Spring Boot
-- Amazon Web Services(AWS) EC2
-- Thymeleaf
-- Thymeleaf Fragments
-- HTML5
-- CSS
-- JavaScript
-- Spring MVC
-- JDBC
-- H2 Database Engine (In-memory)
-- JUnit test framework
-- Spring Security
-- Twitter Bootstrap
-- Maven
+    Test Code
+        Runs the unit tests using Maven.
 
-## Features
+    Filesystem Scan
+        Scans the filesystem using Trivy and generates an HTML report.
 
-- Full-Stack Application
-- UI components created with Thymeleaf and styled with Twitter Bootstrap
-- Authentication and authorization using Spring Security
-  - Authentication by allowing the users to authenticate with a username and password
-  - Authorization by granting different permissions based on the roles (non-members, users, and managers)
-- Different roles (non-members, users, and managers) with varying levels of permissions
-  - Non-members only can see the boardgame lists and reviews
-  - Users can add board games and write reviews
-  - Managers can edit and delete the reviews
-- Deployed the application on AWS EC2
-- JUnit test framework for unit testing
-- Spring MVC best practices to segregate views, controllers, and database packages
-- JDBC for database connectivity and interaction
-- CRUD (Create, Read, Update, Delete) operations for managing data in the database
-- Schema.sql file to customize the schema and input initial data
-- Thymeleaf Fragments to reduce redundancy of repeating HTML elements (head, footer, navigation)
+    SonarQube Analysis
+        Runs static code analysis using SonarQube.
 
-## How to Run
+    Quality Gate
+        Waits for the SonarQube quality gate result.
 
-1. Clone the repository
-2. Open the project in your IDE of choice
-3. Run the application
-4. To use initial user data, use the following credentials.
-  - username: bugs    |     password: bunny (user role)
-  - username: daffy   |     password: duck  (manager role)
-5. You can also sign-up as a new user and customize your role to play with the application! 😊
+    Build Code
+        Packages the application using Maven.
+
+    Push to Nexus
+        Deploys the Maven artifact to Nexus.
+
+    Build & Tag Docker Image
+        Builds and tags the Docker image.
+
+    Docker Image Scan
+        Scans the Docker image using Trivy and generates an HTML report.
+
+    Push Docker Image to Nexus
+        Pushes the Docker image to Nexus.
+
+    Change Image Version in Kubernetes
+        Updates the Kubernetes deployment YAML file with the new Docker image tag.
+
+    Deploy to EKS Cluster
+        Deploys the updated application to the EKS cluster.
+
+    Send an Email
+        Sends an Email with the result of the pipeline execution.
+
+Environment Variables
+
+    SCANNER_HOME: Path to the SonarQube scanner.
+    NEXUS_SERVER: Nexus server address.
+    DOCKER_REGISTRY: Docker registry URL.
+    IMAGE_TAG: Docker image tag, typically the Jenkins build number.
+
+Tools and Technologies
+
+    JDK
+    Maven
+    Jenkins: For Pipeline
+    Terraform: For provisioning Kubernetes cluster
+    SonarQube: For static code analysis.
+    Trivy: For filesystem and Docker image scanning.
+    Nexus: For artifact and Docker image storage.
+    Docker: For containerizing the application.
+    Kubernetes: For deploying the application.
+    Helm: For deploying node-exporter of Prometheus
+    Prometheus, Grafana: For Monitoring
+
+Usage
+1. Terraform
+
+    Navigate to the terraform_eks directory and initialize Terraform
+    Apply the Terraform configuration to set up the EKS Cluster
+
+2. Set up SonarQube
+3. Set up Nexus
+4. Set up Jenkins
+
+    Install the necessary tools and plugins in Jenkins.
+    Configure the environment variables and credentials.
+
+5. Run the Pipeline
+
+    Trigger the pipeline to start the build, test, scan, and deployment process.
+
+6. Check Reports
+
+    Review the Trivy reports and SonarQube analysis for any issues.
+
+7. Set up Monitoring Server
+
+    Install Prometheus and Grafana
+    Import dashboards in Grafana
+
+8. Monitor Kubernetes Cluster with Prometheus
+Install Node Exporter using Helm
+
+    Add the Prometheus Community Helm repository:
+
+    sh
+
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+
+Create a Kubernetes namespace for the Node Exporter:
+
+sh
+
+kubectl create namespace prometheus-node-exporter
+
+Install the Node Exporter using Helm:
+
+sh
+
+helm install prometheus-node-exporter prometheus-community/prometheus-node-exporter --na
