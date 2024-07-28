@@ -1,10 +1,10 @@
 ![Alt text](DevSecOps.jpeg)
 
-##DevSecOps Project CI/CD Pipeline
+# DevSecOps Project CI/CD Pipeline
 
-This project demonstrates a CI/CD pipeline for a Java Maven application called BoardGame. The pipeline is implemented using Jenkins and incorporates several tools and stages to ensure code quality, security, and automated deployment.
-Project Map
-Pipeline Overview
+### This project demonstrates a CI/CD pipeline for a Java Maven application called BoardGame. The pipeline is implemented using Jenkins and incorporates several tools and stages to ensure code quality, security, and automated deployment.
+## Project Map
+### Pipeline Overview
 
 The Jenkins pipeline performs the following steps:
 
