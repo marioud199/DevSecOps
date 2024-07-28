@@ -99,18 +99,18 @@ Install Node Exporter using Helm
 
     Add the Prometheus Community Helm repository:
 
-    sh
+ ####   sh
 
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 
 Create a Kubernetes namespace for the Node Exporter:
 
-sh
+#### sh
 
 kubectl create namespace prometheus-node-exporter
 
 Install the Node Exporter using Helm:
 
-sh
+#### sh
 
 helm install prometheus-node-exporter prometheus-community/prometheus-node-exporter --na
