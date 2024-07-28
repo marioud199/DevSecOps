@@ -26,30 +26,30 @@ pipeline {
                 sh "mvn test"
             }
         }
-        // stage('File system scan') {
-        //     steps {
-        //         sh "trivy fs --format table -o trivy-fs-scan.html ."
-        //     }
-        // }
-        // stage('SonarQube scan') {
-        //     steps {
-        //         withSonarQubeEnv('sonar') {
-        //             sh """
-        //             ${SCANNER_HOME}/bin/sonar-scanner \
-        //             -Dsonar.projectKey=BoardGame \
-        //             -Dsonar.projectName=BoardGame \
-        //             -Dsonar.java.binaries=. 
-        //             """
-        //         }
-        //     }
-        // }
-        // stage('Quality Gate') {
-        //     steps {
-        //         script {
-        //             waitForQualityGate abortPipeline: false, credentialsId: 'sonar-id'
-        //         }
-        //     }
-        // }
+        stage('File system scan') {
+            steps {
+                sh "trivy fs --format table -o trivy-fs-scan.html ."
+            }
+        }
+        stage('SonarQube scan') {
+            steps {
+                withSonarQubeEnv('sonar') {
+                    sh """
+                    ${SCANNER_HOME}/bin/sonar-scanner \
+                    -Dsonar.projectKey=BoardGame \
+                    -Dsonar.projectName=BoardGame \
+                    -Dsonar.java.binaries=. 
+                    """
+                }
+            }
+        }
+        stage('Quality Gate') {
+            steps {
+                script {
+                    waitForQualityGate abortPipeline: false, credentialsId: 'sonar-id'
+                }
+            }
+        }
         stage('Build') {
             steps {
                 sh "mvn package"
@@ -69,11 +69,11 @@ pipeline {
                 }
             }
         }
-        // stage('Docker Image Scan') {
-        //     steps {
-        //         sh "trivy image --format table -o trivy-image-scan.html marioud/devsecops-boardgame:${IMAGE_TAG}"
-        //     }
-        // }
+        stage('Docker Image Scan') {
+            steps {
+                sh "trivy image --format table -o trivy-image-scan.html marioud/devsecops-boardgame:${IMAGE_TAG}"
+            }
+        }
         stage('Docker Push Image') {
             steps {
                 script {
